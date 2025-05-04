@@ -17,5 +17,4 @@ func LoggerMiddleware() fiber.Handler {
 		log.Printf("Completed %s in %v", c.Path(), time.Since(start))
 		return err
 	}
-
 }

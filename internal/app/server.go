@@ -7,6 +7,8 @@ import (
 
 	"go-image-compression/internal/config"
 	"go-image-compression/internal/controller/v1/http"
+	"go-image-compression/internal/repository"
+	"go-image-compression/internal/service"
 	"go-image-compression/pkg/db"
 
 	"github.com/gofiber/fiber/v2"
@@ -32,7 +34,9 @@ func MustRun() error {
 		return fmt.Errorf("app/server.go: %v", err)
 	}
 
-	handler := http.NewHandler()
+	repositories := repository.NewRepository(client)
+	services := service.NewService(repositories)
+	handler := http.NewHandler(services)
 
 	app := fiber.New()
 	handler.SetupRoutes(app)

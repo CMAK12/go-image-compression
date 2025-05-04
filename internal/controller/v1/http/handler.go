@@ -1,12 +1,19 @@
 package http
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"go-image-compression/internal/service"
+
+	"github.com/gofiber/fiber/v2"
+)
 
 type Handler struct {
+	Services service.Services
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(services service.Services) Handler {
+	return Handler{
+		Services: services,
+	}
 }
 
 func (h *Handler) SetupRoutes(app *fiber.App) {
