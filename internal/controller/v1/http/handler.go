@@ -17,9 +17,11 @@ func NewHandler(services service.Services) Handler {
 }
 
 func (h *Handler) SetupRoutes(app *fiber.App) {
-	api := app.Group("/api/v1", LoggerMiddleware())
+	app.Use(LoggerMiddleware())
+
+	api := app.Group("/api/v1")
 
 	image := api.Group("/image")
-	image.Get("", h.listImage)
+	image.Get("", ResponseWrapper(h.getImage))
 	image.Post("", h.createImage)
 }
