@@ -15,23 +15,25 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
+const codepath = "app/server.go"
+
 func MustRun() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	cfg, err := config.MustLoad()
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %v", codepath, err)
 	}
 
 	client, err := db.MustConnectMinio(cfg.Minio)
 	if err != nil {
-		return fmt.Errorf("app/server.go: %v", err)
+		return fmt.Errorf("%s: %v", codepath, err)
 	}
 
 	err = migrate(ctx, client)
 	if err != nil {
-		return fmt.Errorf("app/server.go: %v", err)
+		return fmt.Errorf("%s: %v", codepath, err)
 	}
 
 	repositories := repository.NewRepository(client)
@@ -42,7 +44,7 @@ func MustRun() error {
 	handler.SetupRoutes(app)
 
 	if err := app.Listen(cfg.HTTP.Port); err != nil {
-		return err
+		return fmt.Errorf("%s: %v", codepath, err)
 	}
 
 	return nil

@@ -19,8 +19,7 @@ func NewHandler(services service.Services) Handler {
 func (h *Handler) SetupRoutes(app *fiber.App) {
 	api := app.Group("/api/v1", LoggerMiddleware())
 
-	compress := api.Group("/compress")
-	compress.Get("", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World!")
-	})
+	image := api.Group("/image")
+	image.Get("", h.listImage)
+	image.Post("", h.createImage)
 }
