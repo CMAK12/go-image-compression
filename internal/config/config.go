@@ -7,13 +7,23 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Config struct {
-	HTTP HTTPConfig `envPrefix:"HTTP_CONFIG"`
-}
+type (
+	Config struct {
+		HTTP  HTTPConfig  `envPrefix:"HTTP_CONFIG"`
+		Minio MinioConfig `envPrefix:"MINIO_CONFIG"`
+	}
 
-type HTTPConfig struct {
-	Port string `env:"HTTP_PORT"`
-}
+	HTTPConfig struct {
+		Port string `env:"HTTP_PORT"`
+	}
+
+	MinioConfig struct {
+		Endpoint        string `env:"MINIO_ENDPOINT"`
+		AccessKeyID     string `env:"MINIO_ACCESS_KEY_ID"`
+		SecretAccessKey string `env:"MINIO_SECRET_ACCESS_KEY"`
+		SSLMode         bool   `env:"MINIO_SSL_MODE"`
+	}
+)
 
 func MustLoad() (*Config, error) {
 	config := &Config{}
