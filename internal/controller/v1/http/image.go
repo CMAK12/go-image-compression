@@ -24,7 +24,7 @@ func (h *Handler) getImage(c *fiber.Ctx) (io.Reader, int, error) {
 		return nil, fiber.StatusBadRequest, fmt.Errorf("compress_percent and id are required")
 	}
 
-	image, err := h.Services.ImageService.Get(c.Context(), filter)
+	image, err := h.ImageService.Get(c.Context(), filter)
 	if err != nil {
 		log.Printf("%s: %v", codepath, err)
 		return nil, fiber.StatusInternalServerError, fmt.Errorf("failed to get image")
@@ -40,7 +40,7 @@ func (h *Handler) createImage(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "failed to get file from form")
 	}
 
-	err = h.Services.ImageService.Create(c.Context(), fileHeader)
+	err = h.ImageService.Create(c.Context(), fileHeader)
 	if err != nil {
 		log.Printf("%s: %v", codepath, err)
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to create image")

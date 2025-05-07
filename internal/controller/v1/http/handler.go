@@ -7,12 +7,12 @@ import (
 )
 
 type Handler struct {
-	Services service.Services
+	ImageService service.ImageService
 }
 
 func NewHandler(services service.Services) Handler {
 	return Handler{
-		Services: services,
+		ImageService: services.ImageService,
 	}
 }
 
