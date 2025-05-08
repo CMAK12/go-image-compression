@@ -50,12 +50,11 @@ func (s *imageService) Create(ctx context.Context, fileHeader *multipart.FileHea
 
 	contentType := fileHeader.Header.Get("Content-Type")
 	fileName := fileHeader.Filename
-
 	image := model.NewImage(file, fileHeader.Size, consts.FullImageBucket, fileName, contentType)
 
 	err = s.imageRepository.Create(ctx, image)
 	if err != nil {
-		return errx.NewInternal().WithDescriptionAndCause(codepath, err)
+		return fmt.Errorf("%s: %w", codepath, err)
 	}
 
 	return nil

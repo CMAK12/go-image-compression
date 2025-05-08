@@ -13,6 +13,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/minio/minio-go/v7"
+	"github.com/nats-io/nats.go"
 )
 
 const codepath = "app/server.go"
@@ -35,6 +36,12 @@ func MustRun() error {
 	if err != nil {
 		return fmt.Errorf("%s: %v", codepath, err)
 	}
+
+	natsClient, err := nats.Connect(nats.DefaultURL)
+	if err != nil {
+		return fmt.Errorf("%s: %v", codepath, err)
+	}
+	defer natsClient.Close()
 
 	repositories := repository.NewRepository(client)
 	services := service.NewService(repositories)
