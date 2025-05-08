@@ -7,11 +7,15 @@ import (
 
 	"go-image-compression/internal/config"
 	"go-image-compression/internal/controller/v1/http"
+	"go-image-compression/internal/repository"
+	"go-image-compression/internal/service"
 	"go-image-compression/pkg/db"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/minio/minio-go/v7"
 )
+
+const codepath = "app/server.go"
 
 func MustRun() error {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -19,26 +23,28 @@ func MustRun() error {
 
 	cfg, err := config.MustLoad()
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %v", codepath, err)
 	}
 
 	client, err := db.MustConnectMinio(cfg.Minio)
 	if err != nil {
-		return fmt.Errorf("app/server.go: %v", err)
+		return fmt.Errorf("%s: %v", codepath, err)
 	}
 
 	err = migrate(ctx, client)
 	if err != nil {
-		return fmt.Errorf("app/server.go: %v", err)
+		return fmt.Errorf("%s: %v", codepath, err)
 	}
 
-	handler := http.NewHandler()
+	repositories := repository.NewRepository(client)
+	services := service.NewService(repositories)
+	handler := http.NewHandler(services)
 
 	app := fiber.New()
 	handler.SetupRoutes(app)
 
 	if err := app.Listen(cfg.HTTP.Port); err != nil {
-		return err
+		return fmt.Errorf("%s: %v", codepath, err)
 	}
 
 	return nil

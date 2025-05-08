@@ -1,19 +1,27 @@
 package http
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"go-image-compression/internal/service"
+
+	"github.com/gofiber/fiber/v2"
+)
 
 type Handler struct {
+	ImageService service.ImageService
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(services service.Services) Handler {
+	return Handler{
+		ImageService: services.ImageService,
+	}
 }
 
 func (h *Handler) SetupRoutes(app *fiber.App) {
-	api := app.Group("/api/v1", LoggerMiddleware())
+	app.Use(LoggerMiddleware())
 
-	compress := api.Group("/compress")
-	compress.Get("", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World!")
-	})
+	api := app.Group("/api/v1")
+
+	image := api.Group("/image")
+	image.Get("", ResponseWrapper(h.getImage))
+	image.Post("", h.createImage)
 }
