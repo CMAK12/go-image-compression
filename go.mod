@@ -8,6 +8,7 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/minio/minio-go/v7 v7.0.91
+	github.com/nordew/go-errx v0.0.0-20250401173920-bde193010626
 )
 
 require (

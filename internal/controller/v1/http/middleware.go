@@ -1,11 +1,13 @@
 package http
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/nordew/go-errx"
 )
 
 func LoggerMiddleware() fiber.Handler {
@@ -20,40 +22,51 @@ func LoggerMiddleware() fiber.Handler {
 	}
 }
 
-func ResponseWrapper(handler func(c *fiber.Ctx) (io.Reader, int, error)) fiber.Handler {
+func ResponseWrapper(handler func(c *fiber.Ctx) (io.Reader, error)) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		response, statusCode, err := handler(c)
+		response, err := handler(c)
 		if err != nil {
-			log.Printf("%s: %v", codepath, err)
-			return writeError(c, statusCode, err)
-		}
-		defer closeIOReader(response)
-
-		c.Set("Content-Type", "image/png")
-		c.Status(statusCode)
-
-		_, err = io.Copy(c.Response().BodyWriter(), response)
-		if err != nil {
-			log.Printf("%s: %v", codepath, err)
-			return writeError(c, fiber.StatusInternalServerError, err)
+			return handleError(c, err)
 		}
 
+		return displayImage(c, response)
+	}
+}
+
+func handleError(c *fiber.Ctx, err error) error {
+	if err == nil {
 		return nil
+	}
+
+	log.Printf("error occurred: %s: %v", codepath, err)
+
+	switch {
+	case errx.IsCode(err, errx.NotFound):
+		return writeError(c, fiber.StatusNotFound, err)
+	case errx.IsCode(err, errx.BadRequest):
+		return writeError(c, fiber.StatusBadRequest, err)
+	case errx.IsCode(err, errx.Internal):
+		return writeError(c, fiber.StatusInternalServerError, err)
+	case errx.IsCode(err, errx.Unauthorized):
+		return writeError(c, fiber.StatusUnauthorized, err)
+	case errx.IsCode(err, errx.Forbidden):
+		return writeError(c, fiber.StatusForbidden, err)
+	default:
+		return writeError(c, fiber.StatusInternalServerError, fmt.Errorf("unexpected error: %v", err))
 	}
 }
 
 func writeError(c *fiber.Ctx, statusCode int, err error) error {
-	c.Set("Content-Type", "application/json")
-	return c.Status(statusCode).JSON(fiber.Map{
-		"error": err.Error(),
-	})
+	response := fiber.Map{
+		"success": false,
+		"error":   err.Error(),
+	}
+
+	return c.Status(statusCode).JSON(response)
 }
 
-func closeIOReader(reader io.Reader) {
-	if closer, ok := reader.(io.Closer); ok {
-		err := closer.Close()
-		if err != nil {
-			log.Printf("%s: %v", codepath, err)
-		}
-	}
+func displayImage(c *fiber.Ctx, image io.Reader) error {
+	c.Set("Content-Type", "image/jpeg")
+	c.Set("Content-Disposition", "inline")
+	return c.SendStream(image)
 }
