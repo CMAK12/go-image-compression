@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"mime/multipart"
 
 	"go-image-compression/internal/consts"
 	"go-image-compression/internal/model"
 	"go-image-compression/internal/repository"
+
+	"github.com/nordew/go-errx"
 )
 
 type (
@@ -33,7 +34,7 @@ const codepath = "service/image.go"
 func (s *imageService) Get(ctx context.Context, filter model.ListImageFilter) (io.Reader, error) {
 	obj, err := s.imageRepository.Get(ctx, filter)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", codepath, err)
+		return nil, errx.NewInternal().WithDescriptionAndCause(codepath, err)
 	}
 
 	return obj, nil
@@ -42,7 +43,7 @@ func (s *imageService) Get(ctx context.Context, filter model.ListImageFilter) (i
 func (s *imageService) Create(ctx context.Context, fileHeader *multipart.FileHeader) error {
 	file, err := fileHeader.Open()
 	if err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
+		return errx.NewInternal().WithDescriptionAndCause(codepath, err)
 	}
 	defer file.Close()
 
@@ -53,7 +54,7 @@ func (s *imageService) Create(ctx context.Context, fileHeader *multipart.FileHea
 
 	err = s.imageRepository.Create(ctx, image)
 	if err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
+		return errx.NewInternal().WithDescriptionAndCause(codepath, err)
 	}
 
 	return nil

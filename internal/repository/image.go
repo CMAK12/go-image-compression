@@ -9,6 +9,7 @@ import (
 	"go-image-compression/internal/model"
 
 	"github.com/minio/minio-go/v7"
+	"github.com/nordew/go-errx"
 )
 
 type (
@@ -31,14 +32,18 @@ func newImageRepository(minio *minio.Client) ImageRepository {
 const codepath = "repository/image.go"
 
 func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter) (io.Reader, error) {
-	bucketName := findImageBucketName(filter.CompressPercent)
+	return nil, errx.NewInternal().WithDescription(fmt.Sprintf("%s: not implemented", codepath))
+	// bucketName := findImageBucketName(filter.CompressPercent)
 
-	image, err := r.minio.GetObject(ctx, bucketName, filter.ID, minio.GetObjectOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", codepath, err)
-	}
+	// image, err := r.minio.GetObject(ctx, bucketName, filter.ID, minio.GetObjectOptions{})
+	// if err != nil {
+	// 	return nil, errx.NewInternal().WithDescriptionAndCause(
+	// 		fmt.Sprintf("%s: %s", codepath, err.Error()),
+	// 		err,
+	// 	)
+	// }
 
-	return image, nil
+	// return image, nil
 }
 
 func (r *imageRepository) Create(ctx context.Context, image model.Image) error {
@@ -46,7 +51,10 @@ func (r *imageRepository) Create(ctx context.Context, image model.Image) error {
 		ContentType: image.ContentType,
 	})
 	if err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
+		return errx.NewInternal().WithDescriptionAndCause(
+			fmt.Sprintf("%s: %s", codepath, err.Error()),
+			err,
+		)
 	}
 
 	return nil
