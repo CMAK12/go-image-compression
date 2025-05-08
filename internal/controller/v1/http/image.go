@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"io"
 	"log"
 
@@ -25,8 +26,7 @@ func (h *Handler) getImage(c *fiber.Ctx) (io.Reader, error) {
 
 	image, err := h.ImageService.Get(c.Context(), filter)
 	if err != nil {
-		log.Printf("%s: %v", codepath, err)
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", codepath, err)
 	}
 
 	return image, nil
