@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"mime/multipart"
 
@@ -34,7 +35,7 @@ const codepath = "service/image.go"
 func (s *imageService) Get(ctx context.Context, filter model.ListImageFilter) (io.Reader, error) {
 	obj, err := s.imageRepository.Get(ctx, filter)
 	if err != nil {
-		return nil, errx.NewInternal().WithDescriptionAndCause(codepath, err)
+		return nil, fmt.Errorf("%s: %w", codepath, err)
 	}
 
 	return obj, nil

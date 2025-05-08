@@ -32,18 +32,17 @@ func newImageRepository(minio *minio.Client) ImageRepository {
 const codepath = "repository/image.go"
 
 func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter) (io.Reader, error) {
-	return nil, errx.NewInternal().WithDescription(fmt.Sprintf("%s: not implemented", codepath))
-	// bucketName := findImageBucketName(filter.CompressPercent)
+	bucketName := findImageBucketName(filter.CompressPercent)
 
-	// image, err := r.minio.GetObject(ctx, bucketName, filter.ID, minio.GetObjectOptions{})
-	// if err != nil {
-	// 	return nil, errx.NewInternal().WithDescriptionAndCause(
-	// 		fmt.Sprintf("%s: %s", codepath, err.Error()),
-	// 		err,
-	// 	)
-	// }
+	image, err := r.minio.GetObject(ctx, bucketName, filter.ID, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, errx.NewInternal().WithDescriptionAndCause(
+			fmt.Sprintf("%s: %s", codepath, err.Error()),
+			err,
+		)
+	}
 
-	// return image, nil
+	return image, nil
 }
 
 func (r *imageRepository) Create(ctx context.Context, image model.Image) error {
