@@ -16,13 +16,12 @@ type Image struct {
 }
 
 type ListImageFilter struct {
-	ID              string `query:"id"`
-	CompressPercent int    `query:"compress_percent"`
+	ID string `query:"id"`
 }
 
 func NewImage(file multipart.File, fileSize int64, bucket, fileName, contentType string) Image {
 	return Image{
-		ID:          fmt.Sprintf("%s-%s", uuid.NewString(), fileName),
+		ID:          fmt.Sprintf("%s_%s_100", uuid.NewString(), fileName),
 		File:        file,
 		FileSize:    fileSize,
 		ContentType: contentType,

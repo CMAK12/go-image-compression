@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 
+	"go-image-compression/internal/broker"
 	"go-image-compression/internal/consts"
 	"go-image-compression/internal/model"
 	"go-image-compression/internal/repository"
@@ -21,12 +22,14 @@ type (
 
 	imageService struct {
 		imageRepository repository.ImageRepository
+		imageProducer   broker.ImageProducer
 	}
 )
 
-func newImageService(imageRepository repository.ImageRepository) ImageService {
+func newImageService(imageRepository repository.ImageRepository, imageProducer broker.ImageProducer) ImageService {
 	return &imageService{
 		imageRepository: imageRepository,
+		imageProducer:   imageProducer,
 	}
 }
 
@@ -48,14 +51,33 @@ func (s *imageService) Create(ctx context.Context, fileHeader *multipart.FileHea
 	}
 	defer file.Close()
 
-	contentType := fileHeader.Header.Get("Content-Type")
-	fileName := fileHeader.Filename
-	image := model.NewImage(file, fileHeader.Size, consts.FullImageBucket, fileName, contentType)
-
-	err = s.imageRepository.Create(ctx, image)
+	image, err := buildImage(fileHeader, file)
 	if err != nil {
 		return fmt.Errorf("%s: %w", codepath, err)
 	}
 
+	if err = s.imageRepository.Create(ctx, image); err != nil {
+		return fmt.Errorf("%s: %w", codepath, err)
+	}
+
+	if err = s.imageProducer.Publish(ctx, image.ID); err != nil {
+		return fmt.Errorf("%s: %w", codepath, err)
+	}
+
 	return nil
+}
+
+func buildImage(header *multipart.FileHeader, file multipart.File) (model.Image, error) {
+	contentType := header.Header.Get("Content-Type")
+	if contentType == "" {
+		return model.Image{}, errx.NewInternal().WithDescriptionAndCause(codepath, fmt.Errorf("missing content type"))
+	}
+
+	fileName := header.Filename
+	if fileName == "" {
+		return model.Image{}, errx.NewInternal().WithDescriptionAndCause(codepath, fmt.Errorf("missing file name"))
+	}
+
+	image := model.NewImage(file, header.Size, consts.BucketName, fileName, contentType)
+	return image, nil
 }

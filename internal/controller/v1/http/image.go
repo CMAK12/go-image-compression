@@ -19,9 +19,9 @@ func (h *Handler) getImage(c *fiber.Ctx) (io.Reader, error) {
 	if err := c.QueryParser(&filter); err != nil {
 		return nil, errx.NewBadRequest().WithDescription("failed to parse query params")
 	}
-	if filter.CompressPercent == 0 || filter.ID == "" {
-		log.Printf("%s: missing required params: compress_percent=%d, id=%s", codepath, filter.CompressPercent, filter.ID)
-		return nil, errx.NewBadRequest().WithDescription("compress_percent and id are required")
+	if filter.ID == "" {
+		log.Printf("%s: missing required params: id=%s", codepath, filter.ID)
+		return nil, errx.NewBadRequest().WithDescription("id field is required")
 	}
 
 	image, err := h.ImageService.Get(c.Context(), filter)

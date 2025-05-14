@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"log"
 
+	"go-image-compression/internal/broker"
 	"go-image-compression/internal/config"
+	"go-image-compression/internal/consts"
 	"go-image-compression/internal/controller/v1/http"
 	"go-image-compression/internal/repository"
 	"go-image-compression/internal/service"
+	"go-image-compression/internal/worker"
 	"go-image-compression/pkg/db"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/minio/minio-go/v7"
-	"github.com/nats-io/nats.go"
+	"github.com/nordew/go-errx"
 )
 
 const codepath = "app/server.go"
@@ -24,62 +27,58 @@ func MustRun() error {
 
 	cfg, err := config.MustLoad()
 	if err != nil {
-		return fmt.Errorf("%s: %v", codepath, err)
+		return fmt.Errorf("%s: %w", codepath, err)
 	}
 
 	client, err := db.MustConnectMinio(cfg.Minio)
 	if err != nil {
-		return fmt.Errorf("%s: %v", codepath, err)
+		return errx.NewInternal().WithDescriptionAndCause(codepath, err)
+	}
+	if err = migrate(ctx, client); err != nil {
+		return fmt.Errorf("%s: %w", codepath, err)
 	}
 
-	err = migrate(ctx, client)
+	broker, err := broker.NewImageProducer(cfg.NATS.URL)
 	if err != nil {
-		return fmt.Errorf("%s: %v", codepath, err)
+		return fmt.Errorf("%s: %w", codepath, err)
 	}
-
-	natsClient, err := nats.Connect(nats.DefaultURL)
-	if err != nil {
-		return fmt.Errorf("%s: %v", codepath, err)
-	}
-	defer natsClient.Close()
+	defer broker.Close()
 
 	repositories := repository.NewRepository(client)
-	services := service.NewService(repositories)
+	services := service.NewService(repositories, broker)
 	handler := http.NewHandler(services)
+
+	w := worker.NewImageWorker(cfg.NATS.URL, services)
+
+	if err = w.Start(); err != nil {
+		return fmt.Errorf("%s: %w", codepath, err)
+	}
 
 	app := fiber.New()
 	handler.SetupRoutes(app)
 
 	if err := app.Listen(cfg.HTTP.Port); err != nil {
-		return fmt.Errorf("%s: %v", codepath, err)
+		return errx.NewInternal().WithDescriptionAndCause(codepath, err)
 	}
 
 	return nil
 }
 
 func migrate(ctx context.Context, client *minio.Client) error {
-	buckets := []string{
-		"image-100",
-		"image-75",
-		"image-50",
-		"image-25",
+	exists, err := client.BucketExists(ctx, consts.BucketName)
+	if err != nil {
+		return errx.NewInternal().WithDescriptionAndCause(codepath, err)
 	}
-
-	for _, bucket := range buckets {
-		exists, err := client.BucketExists(ctx, bucket)
+	if !exists {
+		err = client.MakeBucket(ctx, consts.BucketName, minio.MakeBucketOptions{})
 		if err != nil {
-			return err
+			return errx.NewInternal().WithDescriptionAndCause(codepath, err)
 		}
-		if !exists {
-			err = client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
-			if err != nil {
-				return err
-			}
-			log.Printf("Bucket %s created successfully\n", bucket)
-			continue
-		}
-		log.Printf("Bucket %s already exists\n", bucket)
+		log.Printf("Bucket \"%s\" created successfully\n", consts.BucketName)
+
+		return nil
 	}
+	log.Printf("Bucket %s already exists\n", consts.BucketName)
 
 	return nil
 }
