@@ -48,7 +48,10 @@ func MustRun() error {
 	services := service.NewService(repositories, broker)
 	handler := http.NewHandler(services)
 
-	w := worker.NewImageWorker(cfg.NATS.URL, services)
+	w, err := worker.NewImageWorker(cfg.NATS.URL, repositories)
+	if err != nil {
+		return fmt.Errorf("%s: %w", codepath, err)
+	}
 
 	if err = w.Start(); err != nil {
 		return fmt.Errorf("%s: %w", codepath, err)
