@@ -1,18 +1,22 @@
 package resizer
 
 import (
+	"bytes"
 	"fmt"
 	"image"
-	"mime/multipart"
+	"image/png"
+	"io"
 
 	"github.com/nfnt/resize"
+	"github.com/nordew/go-errx"
 )
 
 type (
 	Compressor interface {
 		Compress(image image.Image, percent float64) (image.Image, error)
+		EncodeImage(img image.Image) (*bytes.Reader, int64, error)
 		BuildImageID(fileName string, percent float64) string
-		GetImage(file multipart.File) (image.Image, error)
+		GetImage(file io.Reader) (image.Image, error)
 	}
 
 	Resizer struct{}
@@ -32,14 +36,28 @@ func (r *Resizer) Compress(image image.Image, percent float64) (image.Image, err
 }
 
 func (r *Resizer) BuildImageID(fileName string, percent float64) string {
-	return fmt.Sprintf("%s_%d", fileName, int(percent*100))
+	baseName := fileName[:len(fileName)-4]
+
+	return fmt.Sprintf("%s_%d", baseName, int(percent*100))
 }
 
-func (r *Resizer) GetImage(file multipart.File) (image.Image, error) {
+func (r *Resizer) GetImage(file io.Reader) (image.Image, error) {
 	decodedImage, _, err := image.Decode(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode image: %w", err)
+		return nil, errx.NewInternal().WithDescriptionAndCause("pkg.resizer.GetImage: ", err)
 	}
 
 	return decodedImage, nil
+}
+
+func (r *Resizer) EncodeImage(img image.Image) (*bytes.Reader, int64, error) {
+	var buf bytes.Buffer
+
+	if err := png.Encode(&buf, img); err != nil {
+		return nil, 0, errx.NewInternal().WithDescriptionAndCause("pkg.resizer.EncodeImage: ", err)
+	}
+
+	reader := bytes.NewReader(buf.Bytes())
+
+	return reader, reader.Size(), nil
 }

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
 
 	"go-image-compression/internal/model"
@@ -14,7 +15,7 @@ import (
 type (
 	ImageRepository interface {
 		Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error)
-		Create(ctx context.Context, image model.Image) error
+		Create(ctx context.Context, img io.Reader, size int64, imageID, contentType string) error
 	}
 
 	imageRepository struct {
@@ -46,13 +47,13 @@ func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter)
 	return image, nil
 }
 
-func (r *imageRepository) Create(ctx context.Context, image model.Image) error {
+func (r *imageRepository) Create(ctx context.Context, img io.Reader, size int64, imageID, contentType string) error {
 	err := r.db.Upload(ctx, db.PutObjectOptions{
 		Bucket:      BucketName,
-		ObjectName:  image.ID,
-		Data:        image.File,
-		Size:        image.FileSize,
-		ContentType: image.ContentType,
+		ObjectName:  imageID,
+		Data:        img,
+		Size:        size,
+		ContentType: contentType,
 	})
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(
