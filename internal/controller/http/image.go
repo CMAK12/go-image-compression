@@ -2,8 +2,8 @@ package http
 
 import (
 	"fmt"
-	"io"
 	"log"
+	"mime/multipart"
 
 	"go-image-compression/internal/model"
 
@@ -13,7 +13,7 @@ import (
 
 const codepath = "controller/v1/http/image.go"
 
-func (h *Handler) getImage(c *fiber.Ctx) (io.Reader, error) {
+func (h *Handler) getImage(c *fiber.Ctx) (multipart.File, error) {
 	var filter model.ListImageFilter
 
 	if err := c.QueryParser(&filter); err != nil {

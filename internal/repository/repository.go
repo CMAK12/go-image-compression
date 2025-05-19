@@ -1,13 +1,15 @@
 package repository
 
-import "github.com/minio/minio-go/v7"
+import (
+	"go-image-compression/pkg/db"
+)
 
 type Repositories struct {
 	ImageRepository ImageRepository
 }
 
-func NewRepository(minio *minio.Client) Repositories {
+func NewRepository(db db.Storage) Repositories {
 	return Repositories{
-		ImageRepository: newImageRepository(minio),
+		ImageRepository: newImageRepository(db),
 	}
 }

@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"log"
 
-	"go-image-compression/internal/broker"
 	"go-image-compression/internal/config"
-	"go-image-compression/internal/consts"
-	"go-image-compression/internal/controller/v1/http"
+	consumer "go-image-compression/internal/controller/amqp"
+	"go-image-compression/internal/controller/http"
 	"go-image-compression/internal/repository"
 	"go-image-compression/internal/service"
-	"go-image-compression/internal/worker"
+	"go-image-compression/pkg/broker"
 	"go-image-compression/pkg/db"
+	"go-image-compression/pkg/resizer"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/minio/minio-go/v7"
 	"github.com/nordew/go-errx"
 )
 
@@ -30,7 +29,7 @@ func MustRun() error {
 		return fmt.Errorf("%s: %w", codepath, err)
 	}
 
-	client, err := db.MustConnectMinio(cfg.Minio)
+	client, err := db.NewMinioStorage(cfg.Minio)
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(codepath, err)
 	}
@@ -38,22 +37,24 @@ func MustRun() error {
 		return fmt.Errorf("%s: %w", codepath, err)
 	}
 
-	broker, err := broker.NewImageProducer(cfg.NATS.URL)
+	nc, err := broker.NewNatsClient(cfg.NATS)
 	if err != nil {
 		return fmt.Errorf("%s: %w", codepath, err)
 	}
-	defer broker.Close()
+	defer nc.Close()
+
+	resizer := resizer.NewResizer()
 
 	repositories := repository.NewRepository(client)
-	services := service.NewService(repositories, broker)
+	services := service.NewService(repositories, nc, resizer)
 	handler := http.NewHandler(services)
 
-	w, err := worker.NewImageWorker(cfg.NATS.URL, repositories)
+	consumer, err := consumer.NewConsumer(nc, services)
 	if err != nil {
 		return fmt.Errorf("%s: %w", codepath, err)
 	}
 
-	if err = w.Start(); err != nil {
+	if err = consumer.Start(); err != nil {
 		return fmt.Errorf("%s: %w", codepath, err)
 	}
 
@@ -67,21 +68,21 @@ func MustRun() error {
 	return nil
 }
 
-func migrate(ctx context.Context, client *minio.Client) error {
-	exists, err := client.BucketExists(ctx, consts.BucketName)
+func migrate(ctx context.Context, client db.Storage) error {
+	exists, err := client.BucketExists(ctx, "images")
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(codepath, err)
 	}
 	if !exists {
-		err = client.MakeBucket(ctx, consts.BucketName, minio.MakeBucketOptions{})
+		err = client.CreateBucket(ctx, "images")
 		if err != nil {
 			return errx.NewInternal().WithDescriptionAndCause(codepath, err)
 		}
-		log.Printf("Bucket \"%s\" created successfully\n", consts.BucketName)
+		log.Println("Bucket \"images\" created successfully")
 
 		return nil
 	}
-	log.Printf("Bucket %s already exists\n", consts.BucketName)
+	log.Println("Bucket images already exists")
 
 	return nil
 }

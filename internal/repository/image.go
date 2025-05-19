@@ -3,36 +3,39 @@ package repository
 import (
 	"context"
 	"fmt"
-	"io"
+	"mime/multipart"
 
-	"go-image-compression/internal/consts"
 	"go-image-compression/internal/model"
+	"go-image-compression/pkg/db"
 
-	"github.com/minio/minio-go/v7"
 	"github.com/nordew/go-errx"
 )
 
 type (
 	ImageRepository interface {
-		Get(ctx context.Context, filter model.ListImageFilter) (io.Reader, error)
+		Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error)
 		Create(ctx context.Context, image model.Image) error
 	}
 
 	imageRepository struct {
-		minio *minio.Client
+		db db.Storage
 	}
 )
 
-func newImageRepository(minio *minio.Client) ImageRepository {
+func newImageRepository(db db.Storage) ImageRepository {
 	return &imageRepository{
-		minio: minio,
+		db: db,
 	}
 }
 
 const codepath = "repository/image.go"
+const BucketName = "images"
 
-func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter) (io.Reader, error) {
-	image, err := r.minio.GetObject(ctx, consts.BucketName, filter.ID, minio.GetObjectOptions{})
+func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error) {
+	image, err := r.db.Download(ctx, db.GetObjectOptions{
+		Bucket: BucketName,
+		Object: filter.ID,
+	})
 	if err != nil {
 		return nil, errx.NewInternal().WithDescriptionAndCause(
 			fmt.Sprintf("%s: %s", codepath, err.Error()),
@@ -44,9 +47,13 @@ func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter)
 }
 
 func (r *imageRepository) Create(ctx context.Context, image model.Image) error {
-	_, err := r.minio.PutObject(ctx, image.Bucket, image.ID, image.File, image.FileSize,
-		minio.PutObjectOptions{ContentType: image.ContentType},
-	)
+	err := r.db.Upload(ctx, db.PutObjectOptions{
+		Bucket:      BucketName,
+		ObjectName:  image.ID,
+		Data:        image.File,
+		Size:        image.FileSize,
+		ContentType: image.ContentType,
+	})
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(
 			fmt.Sprintf("%s: %s", codepath, err.Error()),
