@@ -10,10 +10,10 @@ import (
 	"go-image-compression/internal/model"
 	"go-image-compression/internal/repository"
 	"go-image-compression/pkg/broker"
+	"go-image-compression/pkg/db"
 	"go-image-compression/pkg/resizer"
 
 	"github.com/google/uuid"
-	"github.com/nordew/go-errx"
 )
 
 type (
@@ -50,7 +50,7 @@ func (s *imageService) Get(ctx context.Context, filter model.ListImageFilter) (m
 }
 
 func (s *imageService) Create(ctx context.Context, fileHeader *multipart.FileHeader) error {
-	image, size, fileName, contentType, err := buildImage(fileHeader)
+	image, size, fileName, contentType, err := db.GetFileStat(fileHeader)
 	if err != nil {
 		return fmt.Errorf("%s: %w", codepath, err)
 	}
@@ -95,46 +95,26 @@ func (s *imageService) CompressImage(ctx context.Context, imageID string) error 
 	return nil
 }
 
-func buildImage(header *multipart.FileHeader) (multipart.File, int64, string, string, error) {
-	file, err := header.Open()
-	if err != nil {
-		return nil, 0, "", "", errx.NewInternal().WithDescriptionAndCause(codepath, err)
-	}
-	defer file.Close()
-
-	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		return nil, 0, "", "", errx.NewInternal().WithDescriptionAndCause(codepath, err)
-	}
-
-	fileName := header.Filename
-	if fileName == "" {
-		return nil, 0, "", "", errx.NewInternal().WithDescriptionAndCause(codepath, err)
-	}
-
-	return file, header.Size, fileName, contentType, nil
-}
-
 func (s *imageService) compressAndStore(ctx context.Context, file *bytes.Reader, filename string, percent float64) error {
 	decodedImage, err := s.compressor.GetImage(file)
 	if err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
+		return fmt.Errorf("service.image.compressAndStore: %w", err)
 	}
 
 	resizedImage, err := s.compressor.Compress(decodedImage, percent)
 	if err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
+		return fmt.Errorf("service.image.compressAndStore: %w", err)
 	}
 
 	reader, size, err := s.compressor.EncodeImage(resizedImage)
 	if err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
+		return fmt.Errorf("service.image.compressAndStore: %w", err)
 	}
 
 	imageID := s.compressor.BuildImageID(filename, percent)
 
 	if err := s.imageRepository.Create(ctx, reader, size, imageID, "image/png"); err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
+		return fmt.Errorf("service.image.compressAndStore: %w", err)
 	}
 
 	return nil
