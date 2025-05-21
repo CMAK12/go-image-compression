@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/jpeg"
 	"image/png"
 	"io"
 
@@ -14,9 +15,9 @@ import (
 type (
 	Compressor interface {
 		Compress(image image.Image, percent float64) (image.Image, error)
-		EncodeImage(img image.Image) (*bytes.Reader, int64, error)
+		EncodeImage(img image.Image, format string) (*bytes.Reader, int64, error)
 		BuildImageID(fileName string, percent float64) string
-		GetImage(file io.Reader) (image.Image, error)
+		GetImage(file io.Reader) (image.Image, string, error)
 	}
 
 	Resizer struct{}
@@ -41,20 +42,29 @@ func (r *Resizer) BuildImageID(fileName string, percent float64) string {
 	return fmt.Sprintf("%s_%d", baseName, int(percent*100))
 }
 
-func (r *Resizer) GetImage(file io.Reader) (image.Image, error) {
-	decodedImage, _, err := image.Decode(file)
+func (r *Resizer) GetImage(file io.Reader) (image.Image, string, error) {
+	decodedImage, format, err := image.Decode(file)
 	if err != nil {
-		return nil, errx.NewInternal().WithDescriptionAndCause("pkg.resizer.GetImage: ", err)
+		return nil, "", errx.NewInternal().WithDescriptionAndCause("pkg.resizer.GetImage: ", err)
 	}
 
-	return decodedImage, nil
+	return decodedImage, format, nil
 }
 
-func (r *Resizer) EncodeImage(img image.Image) (*bytes.Reader, int64, error) {
+func (r *Resizer) EncodeImage(img image.Image, format string) (*bytes.Reader, int64, error) {
 	var buf bytes.Buffer
 
-	if err := png.Encode(&buf, img); err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause("pkg.resizer.EncodeImage: ", err)
+	switch format {
+	case "jpeg":
+		if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 80}); err != nil {
+			return nil, 0, errx.NewInternal().WithDescriptionAndCause("pkg.resizer.EncodeImage: ", err)
+		}
+	case "png":
+		if err := png.Encode(&buf, img); err != nil {
+			return nil, 0, errx.NewInternal().WithDescriptionAndCause("pkg.resizer.EncodeImage: ", err)
+		}
+	default:
+		return nil, 0, errx.NewInternal().WithDescription("pkg.resizer.EncodeImage: unsupported format")
 	}
 
 	reader := bytes.NewReader(buf.Bytes())

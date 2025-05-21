@@ -84,5 +84,4 @@ func GetFileStat(header *multipart.FileHeader) (multipart.File, int64, string, s
 	}
 
 	return file, header.Size, fileName, contentType, nil
-
 }
