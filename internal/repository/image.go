@@ -4,37 +4,39 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime/multipart"
 
-	"go-image-compression/internal/consts"
 	"go-image-compression/internal/model"
+	"go-image-compression/pkg/db"
 
-	"github.com/minio/minio-go/v7"
 	"github.com/nordew/go-errx"
 )
 
 type (
 	ImageRepository interface {
-		Get(ctx context.Context, filter model.ListImageFilter) (io.Reader, error)
-		Create(ctx context.Context, image model.Image) error
+		Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error)
+		Create(ctx context.Context, img io.Reader, size int64, imageID, contentType string) error
 	}
 
 	imageRepository struct {
-		minio *minio.Client
+		db db.Storage
 	}
 )
 
-func newImageRepository(minio *minio.Client) ImageRepository {
+func newImageRepository(db db.Storage) ImageRepository {
 	return &imageRepository{
-		minio: minio,
+		db: db,
 	}
 }
 
 const codepath = "repository/image.go"
+const BucketName = "images"
 
-func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter) (io.Reader, error) {
-	bucketName := findImageBucketName(filter.CompressPercent)
-
-	image, err := r.minio.GetObject(ctx, bucketName, filter.ID, minio.GetObjectOptions{})
+func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error) {
+	image, err := r.db.Download(ctx, db.GetObjectOptions{
+		Bucket: BucketName,
+		Object: filter.ID,
+	})
 	if err != nil {
 		return nil, errx.NewInternal().WithDescriptionAndCause(
 			fmt.Sprintf("%s: %s", codepath, err.Error()),
@@ -45,9 +47,13 @@ func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter)
 	return image, nil
 }
 
-func (r *imageRepository) Create(ctx context.Context, image model.Image) error {
-	_, err := r.minio.PutObject(ctx, image.Bucket, image.ID, image.File, image.FileSize, minio.PutObjectOptions{
-		ContentType: image.ContentType,
+func (r *imageRepository) Create(ctx context.Context, img io.Reader, size int64, imageID, contentType string) error {
+	err := r.db.Upload(ctx, db.PutObjectOptions{
+		Bucket:      BucketName,
+		ObjectName:  imageID,
+		Data:        img,
+		Size:        size,
+		ContentType: contentType,
 	})
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(
@@ -57,19 +63,4 @@ func (r *imageRepository) Create(ctx context.Context, image model.Image) error {
 	}
 
 	return nil
-}
-
-func findImageBucketName(compressPercent int) string {
-	switch compressPercent {
-	case 100:
-		return consts.FullImageBucket
-	case 75:
-		return consts.QuarterImageBucket
-	case 50:
-		return consts.HalfImageBucket
-	case 25:
-		return consts.QuarterImageBucket
-	default:
-		return ""
-	}
 }

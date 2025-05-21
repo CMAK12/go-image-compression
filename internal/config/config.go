@@ -1,16 +1,16 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
+	"github.com/nordew/go-errx"
 )
 
 type (
 	Config struct {
 		HTTP  HTTPConfig  `envPrefix:"HTTP_CONFIG"`
 		Minio MinioConfig `envPrefix:"MINIO_CONFIG"`
+		NATS  NATSConfig  `envPrefix:"NATS_CONFIG"`
 	}
 
 	HTTPConfig struct {
@@ -23,17 +23,23 @@ type (
 		SecretAccessKey string `env:"MINIO_SECRET_ACCESS_KEY"`
 		SSLMode         bool   `env:"MINIO_SSL_MODE"`
 	}
+
+	NATSConfig struct {
+		URL string `env:"NATS_URL"`
+	}
 )
+
+const codepath = "config/config.go"
 
 func MustLoad() (*Config, error) {
 	config := &Config{}
 
 	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("config/config.go: %v", err)
+		return nil, errx.NewInternal().WithDescriptionAndCause(codepath, err)
 	}
 
 	if err := cleanenv.ReadEnv(config); err != nil {
-		return nil, fmt.Errorf("config/config.go: %v", err)
+		return nil, errx.NewInternal().WithDescriptionAndCause(codepath, err)
 	}
 
 	return config, nil

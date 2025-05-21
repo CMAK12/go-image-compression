@@ -2,8 +2,8 @@ package http
 
 import (
 	"fmt"
-	"io"
 	"log"
+	"mime/multipart"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,7 +22,7 @@ func LoggerMiddleware() fiber.Handler {
 	}
 }
 
-func ResponseWrapper(handler func(c *fiber.Ctx) (io.Reader, error)) fiber.Handler {
+func ResponseWrapper(handler func(c *fiber.Ctx) (multipart.File, error)) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		response, err := handler(c)
 		if err != nil {
@@ -65,7 +65,7 @@ func writeError(c *fiber.Ctx, statusCode int, err error) error {
 	return c.Status(statusCode).JSON(response)
 }
 
-func displayImage(c *fiber.Ctx, image io.Reader) error {
+func displayImage(c *fiber.Ctx, image multipart.File) error {
 	c.Set("Content-Type", "image/jpeg")
 	c.Set("Content-Disposition", "inline")
 	return c.SendStream(image)
