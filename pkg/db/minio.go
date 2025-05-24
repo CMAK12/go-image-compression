@@ -20,7 +20,7 @@ func NewMinioStorage(cfg config.MinioConfig) (Storage, error) {
 		Secure: cfg.SSLMode,
 	})
 	if err != nil {
-		return nil, errx.NewInternal().WithDescriptionAndCause("pkg.db.minio: ", err)
+		return nil, err
 	}
 
 	return &minioStorage{client: mc}, nil
@@ -49,7 +49,7 @@ func (s *minioStorage) Delete(ctx context.Context, bucket, object string) error 
 func (s *minioStorage) BucketExists(ctx context.Context, bucket string) (bool, error) {
 	exists, err := s.client.BucketExists(ctx, bucket)
 	if err != nil {
-		return false, errx.NewInternal().WithDescriptionAndCause("pkg.minio.BucketExists: ", err)
+		return false, err
 	}
 
 	return exists, nil
@@ -58,10 +58,10 @@ func (s *minioStorage) BucketExists(ctx context.Context, bucket string) (bool, e
 func (s *minioStorage) CreateBucket(ctx context.Context, bucket string) error {
 	if err := s.client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{}); err != nil {
 		if exists, err := s.client.BucketExists(ctx, bucket); err != nil || !exists {
-			return errx.NewInternal().WithDescriptionAndCause("pkg.minio.CreateBucket: ", err)
+			return err
 		}
 
-		return errx.NewInternal().WithDescriptionAndCause("pkg.minio.CreateBucket: ", err)
+		return err
 	}
 	return nil
 }
@@ -69,13 +69,13 @@ func (s *minioStorage) CreateBucket(ctx context.Context, bucket string) error {
 func GetFileStat(header *multipart.FileHeader) (multipart.File, int64, string, string, error) {
 	file, err := header.Open()
 	if err != nil {
-		return nil, 0, "", "", errx.NewInternal().WithDescriptionAndCause("pkg.minio.GetFileStat: ", err)
+		return nil, 0, "", "", err
 	}
 	defer file.Close()
 
 	contentType := header.Header.Get("Content-Type")
 	if contentType == "" {
-		return nil, 0, "", "", errx.NewInternal().WithDescriptionAndCause("pkg.minio.GetFileStat: ", err)
+		return nil, 0, "", "", err
 	}
 
 	fileName := header.Filename
