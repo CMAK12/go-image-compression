@@ -1,20 +1,26 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
-	"github.com/nordew/go-errx"
 )
 
 type (
 	Config struct {
 		HTTP  HTTPConfig  `envPrefix:"HTTP_CONFIG"`
+		GRPC  GRPCConfig  `envPrefix:"GRPC_CONFIG"`
 		Minio MinioConfig `envPrefix:"MINIO_CONFIG"`
 		NATS  NATSConfig  `envPrefix:"NATS_CONFIG"`
 	}
 
 	HTTPConfig struct {
 		Port string `env:"HTTP_PORT"`
+	}
+
+	GRPCConfig struct {
+		Port string `env:"GRPC_PORT"`
 	}
 
 	MinioConfig struct {
@@ -29,17 +35,14 @@ type (
 	}
 )
 
-const codepath = "config/config.go"
-
 func MustLoad() (*Config, error) {
 	config := &Config{}
-
 	if err := godotenv.Load(); err != nil {
-		return nil, errx.NewInternal().WithDescriptionAndCause(codepath, err)
+		return nil, fmt.Errorf("config.MustLoad: %w", err)
 	}
 
 	if err := cleanenv.ReadEnv(config); err != nil {
-		return nil, errx.NewInternal().WithDescriptionAndCause(codepath, err)
+		return nil, fmt.Errorf("config.MustLoad: %w", err)
 	}
 
 	return config, nil

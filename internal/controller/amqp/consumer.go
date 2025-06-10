@@ -16,17 +16,15 @@ type (
 	}
 )
 
-func NewConsumer(broker broker.Broker, services service.Services) (Consumer, error) {
-	return Consumer{
+func Start(broker broker.Broker, services service.Services) error {
+	c := Consumer{
 		broker:   broker,
 		services: services,
-	}, nil
-}
+	}
 
-func (c *Consumer) Start() error {
 	err := c.broker.Subscribe(
 		"image.created",
-		c.handleMessage,
+		c.createImage,
 	)
 	if err != nil {
 		return err
@@ -35,12 +33,12 @@ func (c *Consumer) Start() error {
 	return nil
 }
 
-func (c *Consumer) handleMessage(msg *broker.Message) error {
+func (c *Consumer) createImage(msg *broker.Message) error {
 	imageID := string(msg.Data)
 
 	if err := c.services.ImageService.CompressImage(context.Background(), imageID); err != nil {
-		log.Println("consumer.handleMessage: ", err)
-		return fmt.Errorf("consumer.handleMessage: %w", err)
+		log.Println("consumer.createImage: ", err)
+		return fmt.Errorf("consumer.createImage: %w", err)
 	}
 
 	return nil
