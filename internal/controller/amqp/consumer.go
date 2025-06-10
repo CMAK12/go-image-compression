@@ -22,10 +22,7 @@ func Start(broker broker.Broker, services service.Services) error {
 		services: services,
 	}
 
-	err := c.broker.Subscribe(
-		"image.created",
-		c.createImage,
-	)
+	err := c.broker.Subscribe("image.created", c.createImage)
 	if err != nil {
 		return err
 	}
