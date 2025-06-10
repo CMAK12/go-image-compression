@@ -7,6 +7,7 @@ import (
 
 	"go-image-compression/internal/config"
 	consumer "go-image-compression/internal/controller/amqp"
+	"go-image-compression/internal/controller/grpc"
 	"go-image-compression/internal/controller/http"
 	"go-image-compression/internal/repository"
 	"go-image-compression/internal/service"
@@ -57,6 +58,12 @@ func MustRun() error {
 	if err = consumer.Start(); err != nil {
 		return fmt.Errorf("%s: %w", codepath, err)
 	}
+
+	go func() {
+		if err := grpc.StartGRPCServer(services.ImageService); err != nil {
+			log.Printf("%s: failed to start gRPC server: %v", codepath, err)
+		}
+	}()
 
 	app := fiber.New()
 	handler.SetupRoutes(app)
