@@ -18,7 +18,7 @@ type (
 	ImageService interface {
 		Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error)
 		Create(ctx context.Context, fileHeader *multipart.FileHeader) error
-		CompressImage(ctx context.Context, imageID string) error
+		CompressImage(ctx context.Context, payload model.Payload) error
 	}
 
 	imageService struct {
@@ -66,9 +66,13 @@ func (s *imageService) Create(ctx context.Context, fileHeader *multipart.FileHea
 	return nil
 }
 
-func (s *imageService) CompressImage(ctx context.Context, imageID string) error {
+func (s *imageService) CompressImage(ctx context.Context, payload model.Payload) error {
+	if payload.ImageID == "" {
+		return fmt.Errorf("service.image.CompressImage: imageID is empty")
+	}
+
 	file, err := s.imageRepository.Get(ctx, model.ListImageFilter{
-		ID: imageID,
+		ID: payload.ImageID,
 	})
 	if err != nil {
 		return fmt.Errorf("service.image.CompressImage: %w", err)
@@ -83,7 +87,7 @@ func (s *imageService) CompressImage(ctx context.Context, imageID string) error 
 	}
 
 	for _, quality := range qualities {
-		imageID := s.compressor.BuildImageID(imageID, quality)
+		imageID := s.compressor.BuildImageID(payload.ImageID, quality)
 
 		compressedImage, err := s.compressor.Compress(image, quality)
 		if err != nil {
