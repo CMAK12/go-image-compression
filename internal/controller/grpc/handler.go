@@ -3,6 +3,7 @@ package grpc_handler
 import (
 	"context"
 	"io"
+	"mime/multipart"
 
 	"go-image-compression/internal/model"
 	"go-image-compression/internal/service"
@@ -13,19 +14,26 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-type CompressionHandler struct {
-	pb.UnimplementedImageServiceServer
-	svc service.Services
-}
+type (
+	imageService interface {
+		Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error)
+		Create(ctx context.Context, fileHeader *multipart.FileHeader) error
+	}
+
+	CompressionHandler struct {
+		pb.UnimplementedImageServiceServer
+		imageService imageService
+	}
+)
 
 func NewCompressionHandler(svc service.Services) *CompressionHandler {
 	return &CompressionHandler{
-		svc: svc,
+		imageService: svc.ImageService,
 	}
 }
 
 func (h *CompressionHandler) GetImage(ctx context.Context, req *pb.GetImageRequest) (*pb.GetImageResponse, error) {
-	image, err := h.svc.ImageService.Get(ctx, model.ListImageFilter{
+	image, err := h.imageService.Get(ctx, model.ListImageFilter{
 		ID: req.GetId(),
 	})
 	if err != nil {
@@ -47,7 +55,7 @@ func (h *CompressionHandler) UploadImage(ctx context.Context, req *pb.UploadImag
 		return nil, status.Errorf(codes.InvalidArgument, "grpc.UploadImage: data cannot be empty")
 	}
 
-	if err := h.svc.ImageService.Create(ctx, nil); err != nil {
+	if err := h.imageService.Create(ctx, nil); err != nil {
 		return nil, status.Errorf(codes.Internal, "grpc.UploadImage: %v", err)
 	}
 
