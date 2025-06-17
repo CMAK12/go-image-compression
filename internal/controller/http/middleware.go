@@ -2,44 +2,46 @@ package http
 
 import (
 	"fmt"
-	"log"
 	"mime/multipart"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/nordew/go-errx"
+	"go.uber.org/zap"
 )
 
-func LoggerMiddleware() fiber.Handler {
+func loggerMiddleware(logger *zap.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
-		log.Printf("Started: %s %s", c.Method(), c.Path())
-
 		err := c.Next()
+		stop := time.Since(start)
 
-		log.Printf("Completed %s in %v", c.Path(), time.Since(start))
+		logger.Info(
+			"HTTP Request",
+			zap.String("method", c.Method()),
+			zap.String("path", c.Path()),
+			zap.Int("status", c.Response().StatusCode()),
+			zap.Duration("latency", stop),
+		)
+
 		return err
 	}
 }
 
-func ResponseWrapper(handler func(c *fiber.Ctx) (multipart.File, error)) fiber.Handler {
+func responseWrapper(handler func(c *fiber.Ctx) (multipart.File, error)) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		response, err := handler(c)
 		if err != nil {
 			return handleError(c, err)
 		}
 
-		return displayImage(c, response)
+		c.Set("Content-Type", "image/jpeg")
+		c.Set("Content-Disposition", "inline")
+		return c.SendStream(response)
 	}
 }
 
 func handleError(c *fiber.Ctx, err error) error {
-	if err == nil {
-		return nil
-	}
-
-	log.Printf("error occurred: %s: %v", codepath, err)
-
 	switch {
 	case errx.IsCode(err, errx.NotFound):
 		return writeError(c, fiber.StatusNotFound, err)
@@ -58,15 +60,14 @@ func handleError(c *fiber.Ctx, err error) error {
 
 func writeError(c *fiber.Ctx, statusCode int, err error) error {
 	response := fiber.Map{
-		"success": false,
-		"error":   err.Error(),
+		"error": err.Error(),
 	}
 
 	return c.Status(statusCode).JSON(response)
 }
 
-func displayImage(c *fiber.Ctx, image multipart.File) error {
-	c.Set("Content-Type", "image/jpeg")
-	c.Set("Content-Disposition", "inline")
-	return c.SendStream(image)
-}
+// func displayImage(c *fiber.Ctx, image multipart.File) error {
+// 	c.Set("Content-Type", "image/jpeg")
+// 	c.Set("Content-Disposition", "inline")
+// 	return c.SendStream(image)
+// }

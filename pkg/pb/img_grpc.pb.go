@@ -4,14 +4,13 @@
 // - protoc             v6.31.1
 // source: img.proto
 
-package proto
+package pb
 
 import (
 	context "context"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -29,7 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ImageServiceClient interface {
 	GetImage(ctx context.Context, in *GetImageRequest, opts ...grpc.CallOption) (*GetImageResponse, error)
-	UploadImage(ctx context.Context, in *UploadImageRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UploadImage(ctx context.Context, in *UploadImageRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type imageServiceClient struct {
@@ -50,9 +49,9 @@ func (c *imageServiceClient) GetImage(ctx context.Context, in *GetImageRequest, 
 	return out, nil
 }
 
-func (c *imageServiceClient) UploadImage(ctx context.Context, in *UploadImageRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *imageServiceClient) UploadImage(ctx context.Context, in *UploadImageRequest, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
+	out := new(Empty)
 	err := c.cc.Invoke(ctx, ImageService_UploadImage_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -65,7 +64,7 @@ func (c *imageServiceClient) UploadImage(ctx context.Context, in *UploadImageReq
 // for forward compatibility.
 type ImageServiceServer interface {
 	GetImage(context.Context, *GetImageRequest) (*GetImageResponse, error)
-	UploadImage(context.Context, *UploadImageRequest) (*emptypb.Empty, error)
+	UploadImage(context.Context, *UploadImageRequest) (*Empty, error)
 	mustEmbedUnimplementedImageServiceServer()
 }
 
@@ -79,7 +78,7 @@ type UnimplementedImageServiceServer struct{}
 func (UnimplementedImageServiceServer) GetImage(context.Context, *GetImageRequest) (*GetImageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetImage not implemented")
 }
-func (UnimplementedImageServiceServer) UploadImage(context.Context, *UploadImageRequest) (*emptypb.Empty, error) {
+func (UnimplementedImageServiceServer) UploadImage(context.Context, *UploadImageRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UploadImage not implemented")
 }
 func (UnimplementedImageServiceServer) mustEmbedUnimplementedImageServiceServer() {}

@@ -4,12 +4,11 @@
 // 	protoc        v6.31.1
 // source: img.proto
 
-package proto
+package pb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,16 +21,52 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Empty struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Empty) Reset() {
+	*x = Empty{}
+	mi := &file_img_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Empty) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Empty) ProtoMessage() {}
+
+func (x *Empty) ProtoReflect() protoreflect.Message {
+	mi := &file_img_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Empty.ProtoReflect.Descriptor instead.
+func (*Empty) Descriptor() ([]byte, []int) {
+	return file_img_proto_rawDescGZIP(), []int{0}
+}
+
 type GetImageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // Go Type: string
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetImageRequest) Reset() {
 	*x = GetImageRequest{}
-	mi := &file_img_proto_msgTypes[0]
+	mi := &file_img_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +78,7 @@ func (x *GetImageRequest) String() string {
 func (*GetImageRequest) ProtoMessage() {}
 
 func (x *GetImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_img_proto_msgTypes[0]
+	mi := &file_img_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +91,7 @@ func (x *GetImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetImageRequest.ProtoReflect.Descriptor instead.
 func (*GetImageRequest) Descriptor() ([]byte, []int) {
-	return file_img_proto_rawDescGZIP(), []int{0}
+	return file_img_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetImageRequest) GetId() string {
@@ -66,54 +101,9 @@ func (x *GetImageRequest) GetId() string {
 	return ""
 }
 
-type GetImageResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetImageResponse) Reset() {
-	*x = GetImageResponse{}
-	mi := &file_img_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetImageResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetImageResponse) ProtoMessage() {}
-
-func (x *GetImageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_img_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetImageResponse.ProtoReflect.Descriptor instead.
-func (*GetImageResponse) Descriptor() ([]byte, []int) {
-	return file_img_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *GetImageResponse) GetData() []byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
 type UploadImageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Data          []byte                 `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Data          []byte                 `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"` // Go Type: []byte
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -148,13 +138,6 @@ func (*UploadImageRequest) Descriptor() ([]byte, []int) {
 	return file_img_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *UploadImageRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
 func (x *UploadImageRequest) GetData() []byte {
 	if x != nil {
 		return x.Data
@@ -162,27 +145,27 @@ func (x *UploadImageRequest) GetData() []byte {
 	return nil
 }
 
-type ErrorResponse struct {
+type GetImageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"` // Go Type: []byte
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ErrorResponse) Reset() {
-	*x = ErrorResponse{}
+func (x *GetImageResponse) Reset() {
+	*x = GetImageResponse{}
 	mi := &file_img_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ErrorResponse) String() string {
+func (x *GetImageResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ErrorResponse) ProtoMessage() {}
+func (*GetImageResponse) ProtoMessage() {}
 
-func (x *ErrorResponse) ProtoReflect() protoreflect.Message {
+func (x *GetImageResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_img_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -194,35 +177,34 @@ func (x *ErrorResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ErrorResponse.ProtoReflect.Descriptor instead.
-func (*ErrorResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetImageResponse.ProtoReflect.Descriptor instead.
+func (*GetImageResponse) Descriptor() ([]byte, []int) {
 	return file_img_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ErrorResponse) GetMessage() string {
+func (x *GetImageResponse) GetData() []byte {
 	if x != nil {
-		return x.Message
+		return x.Data
 	}
-	return ""
+	return nil
 }
 
 var File_img_proto protoreflect.FileDescriptor
 
 const file_img_proto_rawDesc = "" +
 	"\n" +
-	"\timg.proto\x12\x03api\x1a\x1bgoogle/protobuf/empty.proto\"!\n" +
+	"\timg.proto\x12\x03api\"\a\n" +
+	"\x05Empty\"!\n" +
 	"\x0fGetImageRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"&\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"(\n" +
+	"\x12UploadImageRequest\x12\x12\n" +
+	"\x04data\x18\x02 \x01(\fR\x04data\"&\n" +
 	"\x10GetImageResponse\x12\x12\n" +
-	"\x04data\x18\x01 \x01(\fR\x04data\"8\n" +
-	"\x12UploadImageRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04data\x18\x02 \x01(\fR\x04data\")\n" +
-	"\rErrorResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\x87\x01\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data2{\n" +
 	"\fImageService\x127\n" +
-	"\bGetImage\x12\x14.api.GetImageRequest\x1a\x15.api.GetImageResponse\x12>\n" +
-	"\vUploadImage\x12\x17.api.UploadImageRequest\x1a\x16.google.protobuf.EmptyB\x11Z\x0fpkg/proto;protob\x06proto3"
+	"\bGetImage\x12\x14.api.GetImageRequest\x1a\x15.api.GetImageResponse\x122\n" +
+	"\vUploadImage\x12\x17.api.UploadImageRequest\x1a\n" +
+	".api.EmptyB\vZ\tpkg/pb;pbb\x06proto3"
 
 var (
 	file_img_proto_rawDescOnce sync.Once
@@ -238,17 +220,16 @@ func file_img_proto_rawDescGZIP() []byte {
 
 var file_img_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_img_proto_goTypes = []any{
-	(*GetImageRequest)(nil),    // 0: api.GetImageRequest
-	(*GetImageResponse)(nil),   // 1: api.GetImageResponse
+	(*Empty)(nil),              // 0: api.Empty
+	(*GetImageRequest)(nil),    // 1: api.GetImageRequest
 	(*UploadImageRequest)(nil), // 2: api.UploadImageRequest
-	(*ErrorResponse)(nil),      // 3: api.ErrorResponse
-	(*emptypb.Empty)(nil),      // 4: google.protobuf.Empty
+	(*GetImageResponse)(nil),   // 3: api.GetImageResponse
 }
 var file_img_proto_depIdxs = []int32{
-	0, // 0: api.ImageService.GetImage:input_type -> api.GetImageRequest
+	1, // 0: api.ImageService.GetImage:input_type -> api.GetImageRequest
 	2, // 1: api.ImageService.UploadImage:input_type -> api.UploadImageRequest
-	1, // 2: api.ImageService.GetImage:output_type -> api.GetImageResponse
-	4, // 3: api.ImageService.UploadImage:output_type -> google.protobuf.Empty
+	3, // 2: api.ImageService.GetImage:output_type -> api.GetImageResponse
+	0, // 3: api.ImageService.UploadImage:output_type -> api.Empty
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

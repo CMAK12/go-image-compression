@@ -7,10 +7,6 @@ package model
 // 	ContentType string         `json:"content_type"`
 // }
 
-type Payload struct {
-	ImageID string `json:"image_id"`
-}
-
 type ListImageFilter struct {
 	ID string `query:"id"`
 }

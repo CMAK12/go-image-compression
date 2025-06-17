@@ -2,12 +2,12 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"go-image-compression/internal/config"
 	"mime/multipart"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/nordew/go-errx"
 )
 
 type minioStorage struct {
@@ -20,6 +20,7 @@ func NewMinioStorage(cfg config.MinioConfig) (Storage, error) {
 		Secure: cfg.SSLMode,
 	})
 	if err != nil {
+		fmt.Println(cfg.Endpoint)
 		return nil, err
 	}
 
@@ -64,24 +65,4 @@ func (s *minioStorage) CreateBucket(ctx context.Context, bucket string) error {
 		return err
 	}
 	return nil
-}
-
-func GetFileStat(header *multipart.FileHeader) (multipart.File, int64, string, string, error) {
-	file, err := header.Open()
-	if err != nil {
-		return nil, 0, "", "", err
-	}
-	defer file.Close()
-
-	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		return nil, 0, "", "", err
-	}
-
-	fileName := header.Filename
-	if fileName == "" {
-		return nil, 0, "", "", errx.NewInternal().WithDescriptionAndCause("pkg.minio.GetFileStat: ", err)
-	}
-
-	return file, header.Size, fileName, contentType, nil
 }

@@ -2,28 +2,23 @@ syntax = "proto3";
 
 package api;
 
-option go_package = "pkg/proto;proto";
-
-import "google/protobuf/empty.proto";
-
-message GetImageRequest {
-    string id = 1;
-}
-
-message GetImageResponse {
-    bytes data = 1;
-}
-
-message UploadImageRequest {
-    string id = 1;
-    bytes data = 2;
-}
-
-message ErrorResponse {
-    string message = 1;
-}
+option go_package = "pkg/pb;pb";
 
 service ImageService {
     rpc GetImage(GetImageRequest) returns (GetImageResponse);
-    rpc UploadImage(UploadImageRequest) returns (google.protobuf.Empty);
+    rpc UploadImage(UploadImageRequest) returns (Empty);
+}
+
+message Empty {}
+
+message GetImageRequest {
+    string id = 1; // Go Type: string
+}
+
+message UploadImageRequest {
+    bytes data = 2; // Go Type: []byte
+}
+
+message GetImageResponse {
+    bytes data = 1; // Go Type: []byte
 }

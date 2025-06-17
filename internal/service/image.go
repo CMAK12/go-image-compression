@@ -1,74 +1,89 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
+	"net/http"
 
+	"go-image-compression/internal/config"
 	"go-image-compression/internal/model"
-	"go-image-compression/internal/repository"
 	"go-image-compression/pkg/broker"
-	"go-image-compression/pkg/db"
 	"go-image-compression/pkg/resizer"
 
 	"github.com/google/uuid"
 )
 
 type (
-	ImageService interface {
+	ImageRepository interface {
 		Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error)
-		Create(ctx context.Context, fileHeader *multipart.FileHeader) error
-		CompressImage(ctx context.Context, payload model.Payload) error
+		Create(ctx context.Context, img io.Reader, size int64, imageID, contentType string) error
 	}
 
-	imageService struct {
-		imageRepository repository.ImageRepository
-		event           broker.Broker
+	ImageService struct {
+		imageRepository ImageRepository
+		broker          broker.Broker
 		compressor      resizer.Compressor
+		topics          config.Topic
 	}
 )
 
-func newImageService(imageRepository repository.ImageRepository, event broker.Broker, compressor resizer.Compressor) ImageService {
-	return &imageService{
+func newImageService(
+	imageRepository ImageRepository,
+	broker broker.Broker,
+	compressor resizer.Compressor,
+	topics config.Topic,
+) ImageService {
+	return ImageService{
 		imageRepository: imageRepository,
-		event:           event,
+		broker:          broker,
 		compressor:      compressor,
+		topics:          topics,
 	}
 }
 
-const codepath = "service/image.go"
-
-func (s *imageService) Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error) {
+func (s *ImageService) Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error) {
 	obj, err := s.imageRepository.Get(ctx, filter)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", codepath, err)
+		return nil, fmt.Errorf("service.image.GET: %w", err)
 	}
 
 	return obj, nil
 }
 
-func (s *imageService) Create(ctx context.Context, fileHeader *multipart.FileHeader) error {
-	image, size, fileName, contentType, err := db.GetFileStat(fileHeader)
+func (s *ImageService) Create(ctx context.Context, body []byte) error {
+	if len(body) == 0 {
+		return fmt.Errorf("service.image.Create: body is empty")
+	}
+
+	reader := bytes.NewReader(body)
+
+	imageID := fmt.Sprintf("%s_100", uuid.NewString())
+	mimeType := http.DetectContentType(body)
+
+	if err := s.imageRepository.Create(ctx, reader, reader.Size(), imageID, mimeType); err != nil {
+		return fmt.Errorf("service.image.Create: %w", err)
+	}
+
+	payload := model.NewPayload(imageID, mimeType)
+	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
+		return fmt.Errorf("service.image.Create: %w", err)
 	}
 
-	imageID := fmt.Sprintf("%s_%s_100", uuid.NewString(), fileName)
-
-	if err = s.imageRepository.Create(ctx, image, size, imageID, contentType); err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
-	}
-
-	if err = s.event.Publish("image.created", []byte(imageID)); err != nil {
-		return fmt.Errorf("%s: %w", codepath, err)
+	if ack, err := s.broker.Publish(s.topics.ImageCreated, payloadBytes); err != nil || !ack.Success {
+		return fmt.Errorf("service.image.Create: %w, ack: %t", err, ack.Success)
 	}
 
 	return nil
 }
 
-func (s *imageService) CompressImage(ctx context.Context, payload model.Payload) error {
-	if payload.ImageID == "" {
-		return fmt.Errorf("service.image.CompressImage: imageID is empty")
+func (s *ImageService) CompressImage(ctx context.Context, payload model.Payload) error {
+	if payload.ImageID == "" || payload.MIMEType == "" {
+		return fmt.Errorf("service.image.CompressImage: imageID or MIME type is empty")
 	}
 
 	file, err := s.imageRepository.Get(ctx, model.ListImageFilter{
@@ -99,7 +114,7 @@ func (s *imageService) CompressImage(ctx context.Context, payload model.Payload)
 			return fmt.Errorf("service.image.CompressImage: %w", err)
 		}
 
-		if err := s.imageRepository.Create(ctx, reader, size, imageID, format); err != nil {
+		if err := s.imageRepository.Create(ctx, reader, size, imageID, payload.MIMEType); err != nil {
 			return fmt.Errorf("service.image.CompressImage: %w", err)
 		}
 	}

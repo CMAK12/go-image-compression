@@ -2,16 +2,14 @@ package http
 
 import (
 	"fmt"
-	"log"
 	"mime/multipart"
 
 	"go-image-compression/internal/model"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/nordew/go-errx"
+	"go.uber.org/zap"
 )
-
-const codepath = "controller/v1/http/image.go"
 
 func (h *Handler) getImage(c *fiber.Ctx) (multipart.File, error) {
 	var filter model.ListImageFilter
@@ -20,28 +18,22 @@ func (h *Handler) getImage(c *fiber.Ctx) (multipart.File, error) {
 		return nil, errx.NewBadRequest().WithDescription("failed to parse query params")
 	}
 	if filter.ID == "" {
-		log.Printf("%s: missing required params: id=%s", codepath, filter.ID)
-		return nil, errx.NewBadRequest().WithDescription("id field is required")
+		return nil, errx.NewBadRequest().WithDescription("image ID is required")
 	}
 
 	image, err := h.ImageService.Get(c.Context(), filter)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", codepath, err)
+		return nil, fmt.Errorf("handler.image.getImage: %w", err)
 	}
 
 	return image, nil
 }
 
 func (h *Handler) createImage(c *fiber.Ctx) error {
-	fileHeader, err := c.FormFile("file")
-	if err != nil {
-		log.Printf("%s: %v", codepath, err)
-		return fiber.NewError(fiber.StatusBadRequest, "failed to get file from form")
-	}
+	body := c.Body()
 
-	err = h.ImageService.Create(c.Context(), fileHeader)
-	if err != nil {
-		log.Printf("%s: %v", codepath, err)
+	if err := h.ImageService.Create(c.Context(), body); err != nil {
+		h.logger.Error("handler.image.createImage: %v", zap.Error(err))
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to create image")
 	}
 

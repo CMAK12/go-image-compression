@@ -13,6 +13,7 @@ type (
 		GRPC  GRPCConfig  `envPrefix:"GRPC_CONFIG"`
 		Minio MinioConfig `envPrefix:"MINIO_CONFIG"`
 		NATS  NATSConfig  `envPrefix:"NATS_CONFIG"`
+		Topic Topic       `envPrefix:"TOPIC_CONFIG"`
 	}
 
 	HTTPConfig struct {
@@ -32,6 +33,11 @@ type (
 
 	NATSConfig struct {
 		URL string `env:"NATS_URL"`
+	}
+
+	Topic struct {
+		ImageCreated string `env:"IMAGE_CREATED_TOPIC"`
+		ImageStream  string `env:"IMAGE_STREAM"`
 	}
 )
 

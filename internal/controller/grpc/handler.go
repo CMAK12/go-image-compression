@@ -2,62 +2,38 @@ package grpc_handler
 
 import (
 	"context"
-	"io"
 	"mime/multipart"
 
 	"go-image-compression/internal/model"
 	"go-image-compression/internal/service"
-	pb "go-image-compression/pkg/proto"
+	"go-image-compression/pkg/converter"
+	"go-image-compression/pkg/pb"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
+	"go.uber.org/zap"
 )
 
 type (
-	imageService interface {
+	ImageService interface {
 		Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error)
-		Create(ctx context.Context, fileHeader *multipart.FileHeader) error
+		Create(ctx context.Context, body []byte) error
 	}
 
 	CompressionHandler struct {
 		pb.UnimplementedImageServiceServer
-		imageService imageService
+		imageService ImageService
+		logger       *zap.Logger
+		converter    converter.Converter
 	}
 )
 
-func NewCompressionHandler(svc service.Services) *CompressionHandler {
+func NewCompressionHandler(
+	svc service.Services,
+	logger *zap.Logger,
+	converter converter.Converter,
+) *CompressionHandler {
 	return &CompressionHandler{
-		imageService: svc.ImageService,
+		imageService: &svc.ImageService,
+		logger:       logger,
+		converter:    converter,
 	}
-}
-
-func (h *CompressionHandler) GetImage(ctx context.Context, req *pb.GetImageRequest) (*pb.GetImageResponse, error) {
-	image, err := h.imageService.Get(ctx, model.ListImageFilter{
-		ID: req.GetId(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := io.ReadAll(image)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "grpc.GetImage: %v", err)
-	}
-
-	return &pb.GetImageResponse{
-		Data: data,
-	}, nil
-}
-
-func (h *CompressionHandler) UploadImage(ctx context.Context, req *pb.UploadImageRequest) (*emptypb.Empty, error) {
-	if req.GetData() == nil || len(req.GetData()) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "grpc.UploadImage: data cannot be empty")
-	}
-
-	if err := h.imageService.Create(ctx, nil); err != nil {
-		return nil, status.Errorf(codes.Internal, "grpc.UploadImage: %v", err)
-	}
-
-	return &emptypb.Empty{}, nil
 }

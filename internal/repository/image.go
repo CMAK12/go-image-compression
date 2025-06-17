@@ -13,33 +13,27 @@ import (
 )
 
 type (
-	ImageRepository interface {
-		Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error)
-		Create(ctx context.Context, img io.Reader, size int64, imageID, contentType string) error
-	}
-
-	imageRepository struct {
+	ImageRepository struct {
 		db db.Storage
 	}
 )
 
 func newImageRepository(db db.Storage) ImageRepository {
-	return &imageRepository{
+	return ImageRepository{
 		db: db,
 	}
 }
 
-const codepath = "repository/image.go"
 const BucketName = "images"
 
-func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error) {
+func (r *ImageRepository) Get(ctx context.Context, filter model.ListImageFilter) (multipart.File, error) {
 	image, err := r.db.Download(ctx, db.GetObjectOptions{
 		Bucket: BucketName,
 		Object: filter.ID,
 	})
 	if err != nil {
 		return nil, errx.NewInternal().WithDescriptionAndCause(
-			fmt.Sprintf("%s: %s", codepath, err.Error()),
+			fmt.Sprintf("repository.image.Get: %s", err.Error()),
 			err,
 		)
 	}
@@ -47,7 +41,7 @@ func (r *imageRepository) Get(ctx context.Context, filter model.ListImageFilter)
 	return image, nil
 }
 
-func (r *imageRepository) Create(ctx context.Context, img io.Reader, size int64, imageID, contentType string) error {
+func (r *ImageRepository) Create(ctx context.Context, img io.Reader, size int64, imageID, contentType string) error {
 	err := r.db.Upload(ctx, db.PutObjectOptions{
 		Bucket:      BucketName,
 		ObjectName:  imageID,
@@ -57,7 +51,7 @@ func (r *imageRepository) Create(ctx context.Context, img io.Reader, size int64,
 	})
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(
-			fmt.Sprintf("%s: %s", codepath, err.Error()),
+			fmt.Sprintf("repository.image.Create: %s", err.Error()),
 			err,
 		)
 	}
